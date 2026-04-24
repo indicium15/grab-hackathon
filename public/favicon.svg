@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Map icon">
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+  <path d="M17 16.5 29.5 11l14 5.5L55 12v35.5L42.5 53l-14-5.5L17 52V16.5Z" fill="#f8fafc"/>
+  <path d="M29.5 11v36.5M42.5 16.5V53" fill="none" stroke="#cbd5e1" stroke-width="3" stroke-linecap="round"/>
+  <path d="M20.5 30.5c4.5-6 9.5-7 15-3 5 3.7 8.2 2 14-4.5" fill="none" stroke="#16a34a" stroke-width="5" stroke-linecap="round"/>
+  <path d="M44.5 26.5c0 5.8-7.5 13.5-7.5 13.5s-7.5-7.7-7.5-13.5a7.5 7.5 0 0 1 15 0Z" fill="#ef4444"/>
+  <circle cx="37" cy="26.5" r="2.7" fill="#fff"/>
+</svg>
