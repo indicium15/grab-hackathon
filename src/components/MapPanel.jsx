@@ -110,12 +110,22 @@ function buildPins(participants, candidates, selectedCandidateId) {
 function createMarkerElement(pin) {
   const marker = document.createElement('button')
   marker.type = 'button'
-  marker.className = `map-marker ${pin.kind}`
+  marker.classList.add('map-marker', pin.kind)
   marker.title = pin.name
   marker.setAttribute('aria-label', pin.name)
   marker.textContent = pin.label
   marker.style.background = pin.color
   return marker
+}
+
+function updateMarkerElement(element, pin) {
+  element.classList.add('map-marker')
+  element.classList.remove('origin', 'candidate', 'winner')
+  element.classList.add(pin.kind)
+  element.title = pin.name
+  element.setAttribute('aria-label', pin.name)
+  element.textContent = pin.label
+  element.style.background = pin.color
 }
 
 function getBackendBaseUrl() {
@@ -247,8 +257,6 @@ function MapPanel({
   loadingMessage,
   onSelectCandidate,
   pinsOverride = null,
-  statusTitle = null,
-  statusDescription = null,
   overlayLabel = 'Friendship Damage Control map pins',
 }) {
   const mapContainerRef = useRef(null)
@@ -263,6 +271,7 @@ function MapPanel({
   const pinsRef = useRef([])
   const onSelectCandidateRef = useRef(onSelectCandidate)
   const viewportRef = useRef(SINGAPORE)
+  const lastCameraGeometryKeyRef = useRef('')
   const sdkObjectUrlRef = useRef(null)
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 })
   const [clientConfig, setClientConfig] = useState(DEFAULT_CLIENT_CONFIG)
@@ -289,16 +298,15 @@ function MapPanel({
     [participants, candidates, selectedCandidateId],
   )
   const pins = pinsOverride ?? plannedPins
-  const viewport = useMemo(() => getViewport(pins, midpoint), [pins, midpoint])
-  const selectedCandidate = candidates.find(
-    (candidate) => candidate.candidate.id === selectedCandidateId,
-  )?.candidate
-  const resolvedStatusTitle = statusTitle ?? selectedCandidate?.name ?? 'Least unfair search area'
-  const resolvedStatusDescription = statusDescription ?? (
-    pins.length
-      ? `${participants.length} origins and ${Math.min(candidates.length, 10)} venues mapped`
-      : 'Add friends, pick a category, and run the planner.'
+  const pinGeometryKey = useMemo(
+    () => pins.map((pin) => `${pin.id}:${pin.lat}:${pin.lng}`).join('|'),
+    [pins],
   )
+  const cameraGeometryKey = useMemo(
+    () => `${mapSize.width}x${mapSize.height}|${pinGeometryKey}`,
+    [mapSize.height, mapSize.width, pinGeometryKey],
+  )
+  const viewport = useMemo(() => getViewport(pins, midpoint), [pins, midpoint])
   const positionById = new Map(projectedPositions.map((position) => [position.id, position]))
   const displayPositions = mapSize.width > 0
     ? pins.map((pin) => ({
@@ -322,6 +330,13 @@ function MapPanel({
         to: routeTarget.position,
       }))
     : []
+  const canUseNativeMarkers = Boolean(
+    effectiveMapSdkStatus === 'ready' &&
+      mapReadyRef.current &&
+      internalMapRef.current &&
+      (window.maplibregl?.Marker ?? maplibregl.Marker),
+  )
+  const shouldRenderOverlayPins = !canUseNativeMarkers
 
   pinsRef.current = pins
   onSelectCandidateRef.current = onSelectCandidate
@@ -516,6 +531,7 @@ function MapPanel({
       clearMarkers()
       mapReadyRef.current = false
       internalMapRef.current = null
+      lastCameraGeometryKeyRef.current = ''
       if (projectionRafRef.current) {
         window.cancelAnimationFrame(projectionRafRef.current)
         projectionRafRef.current = null
@@ -624,6 +640,7 @@ function MapPanel({
       clearMarkers()
       mapReadyRef.current = false
       internalMapRef.current = null
+      lastCameraGeometryKeyRef.current = ''
       if (projectionRafRef.current) {
         window.cancelAnimationFrame(projectionRafRef.current)
         projectionRafRef.current = null
@@ -668,7 +685,7 @@ function MapPanel({
         if (!existing) {
           const element = createMarkerElement(pin)
           const clickHandler = pin.kind !== 'origin'
-            ? () => onSelectCandidateRef.current?.(pin.id)
+            ? () => onSelectCandidateRef.current?.(pin.id, 'map-marker')
             : null
           if (clickHandler) {
             element.addEventListener('click', clickHandler)
@@ -681,22 +698,30 @@ function MapPanel({
         }
 
         existing.marker.setLngLat([pin.lng, pin.lat])
-        existing.element.className = `map-marker ${pin.kind}`
-        existing.element.title = pin.name
-        existing.element.setAttribute('aria-label', pin.name)
-        existing.element.textContent = pin.label
-        existing.element.style.background = pin.color
+        updateMarkerElement(existing.element, pin)
         if (existing.clickHandler) {
           existing.element.removeEventListener('click', existing.clickHandler)
         }
         existing.clickHandler = pin.kind !== 'origin'
-          ? () => onSelectCandidateRef.current?.(pin.id)
+          ? () => onSelectCandidateRef.current?.(pin.id, 'map-marker')
           : null
         if (existing.clickHandler) {
           existing.element.addEventListener('click', existing.clickHandler)
         }
       })
     }
+
+    if (lastCameraGeometryKeyRef.current === cameraGeometryKey) {
+      return
+    }
+    console.debug('[FriendshipDamageControl] camera geometry changed', {
+      previousKey: lastCameraGeometryKeyRef.current,
+      nextKey: cameraGeometryKey,
+      mapSize,
+      pinCount: pins.length,
+      selectedCandidateId,
+    })
+    lastCameraGeometryKeyRef.current = cameraGeometryKey
 
     if (pins.length > 1) {
       const bounds = pins.reduce(
@@ -727,7 +752,7 @@ function MapPanel({
       center: [viewport.lng, viewport.lat],
       zoom: viewport.zoom,
     })
-  }, [onSelectCandidate, pins, viewport])
+  }, [cameraGeometryKey, mapSize, onSelectCandidate, pins, selectedCandidateId, viewport])
 
   return (
     <section className="map-panel">
@@ -746,7 +771,7 @@ function MapPanel({
             ))}
           </svg>
         )}
-        {mapSize.width > 0 && pins.length > 0 && (
+        {shouldRenderOverlayPins && mapSize.width > 0 && pins.length > 0 && (
           <div className="pin-overlay" aria-label={overlayLabel}>
             {pins.map((pin) => {
               const position = displayPositionById.get(pin.id)
@@ -762,7 +787,7 @@ function MapPanel({
                   }}
                   title={pin.name}
                   aria-label={pin.name}
-                  onClick={() => pin.kind !== 'origin' && onSelectCandidate?.(pin.id)}
+                  onClick={() => pin.kind !== 'origin' && onSelectCandidate?.(pin.id, 'pin-overlay')}
                 >
                   {pin.label}
                 </button>
@@ -770,16 +795,6 @@ function MapPanel({
             })}
           </div>
         )}
-        <div className="map-status-card">
-          <p className="eyebrow">Singapore</p>
-          <h2>{resolvedStatusTitle}</h2>
-          <p>{resolvedStatusDescription}</p>
-          <div className="map-legend" aria-hidden="true">
-            <span><i className="origin" />Start</span>
-            <span><i className="candidate" />Venue</span>
-            <span><i className="winner" />Selected</span>
-          </div>
-        </div>
         {(effectiveMapSdkStatus === 'failed' || effectiveMapSdkStatus === 'checking') && (
           <div className="map-warning">
             {effectiveMapSdkStatus === 'checking'

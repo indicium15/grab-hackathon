@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import MapPanel from './components/MapPanel.jsx'
 import { planFairlyLate } from './services/backendApi.js'
 import { fetchDirections, searchPlaces } from './services/grabMapsApi.js'
@@ -8,14 +8,6 @@ const RISK_BUFFERS = {
   bold: 5,
   'career-ending': -2,
 }
-
-const RISK_LABELS = {
-  responsible: 'Responsible',
-  bold: 'Bold',
-  'career-ending': 'Career-ending',
-}
-
-const RISK_OPTIONS = Object.entries(RISK_LABELS)
 
 const WEIGHTS = {
   'can-suffer': 0.75,
@@ -89,17 +81,6 @@ function formatMinutes(value) {
 
 function formatDistance(meters) {
   return `${(meters / 1000).toFixed(1)} km`
-}
-
-function formatRiskBuffer(risk) {
-  const buffer = RISK_BUFFERS[risk] ?? 0
-  if (buffer > 0) {
-    return `${buffer} min buffer`
-  }
-  if (buffer < 0) {
-    return `${Math.abs(buffer)} min after ideal`
-  }
-  return 'No buffer'
 }
 
 function getInitial(name) {
@@ -242,6 +223,17 @@ function App() {
     ]
   }, [genericPlan])
 
+  const handleMeetupCandidateSelect = useCallback((candidateId, source = 'unknown') => {
+    setSelectedCandidateId((currentId) => {
+      console.debug('[FriendshipDamageControl] candidate select', {
+        source,
+        previousCandidateId: currentId,
+        nextCandidateId: candidateId,
+      })
+      return candidateId
+    })
+  }, [])
+
   function updateParticipant(id, field, value) {
     setParticipants((current) =>
       current.map((participant) =>
@@ -369,20 +361,8 @@ function App() {
         midpoint={activeTab === 'meetup' ? plan?.midpoint : null}
         loading={activeTab === 'meetup' ? loading : genericLoading}
         loadingMessage={LOADING_TEXTS[loadingIndex]}
-        onSelectCandidate={activeTab === 'meetup' ? setSelectedCandidateId : undefined}
+        onSelectCandidate={activeTab === 'meetup' ? handleMeetupCandidateSelect : undefined}
         pinsOverride={activeTab === 'generic' ? genericPins : null}
-        statusTitle={
-          activeTab === 'generic'
-            ? genericPlan?.destination?.name ?? 'Generic departure planner'
-            : null
-        }
-        statusDescription={
-          activeTab === 'generic'
-            ? genericPlan
-              ? `Route from ${genericPlan.origin.name} to ${genericPlan.destination.name}`
-              : 'Search any two locations and compute how late you can leave.'
-            : null
-        }
         overlayLabel={
           activeTab === 'generic'
             ? 'Generic route pins'
@@ -491,10 +471,6 @@ function App() {
                     <h2>Meetup</h2>
                   </div>
                 </div>
-                <label className="field-label">
-                  Category keyword
-                  <input value={categoryKeyword} readOnly aria-readonly="true" />
-                </label>
                 <div className="chip-row" aria-label="Popular meetup categories">
                   {CATEGORY_SUGGESTIONS.map((keyword) => (
                     <button
@@ -596,10 +572,12 @@ function App() {
       </aside>
 
       <section className="results-panel" aria-live="polite">
-        <div className="results-header">
-          <p className="eyebrow">{activeTab === 'meetup' ? 'Decision board' : 'Departure board'}</p>
-          <h2>{activeTab === 'meetup' ? 'Latest fair plan' : 'Latest route plan'}</h2>
-        </div>
+        {activeTab === 'generic' && (
+          <div className="results-header">
+            <p className="eyebrow">Departure board</p>
+            <h2>Latest route plan</h2>
+          </div>
+        )}
 
         {activeTab === 'meetup' && selectedCandidate ? (
           <>
@@ -646,7 +624,7 @@ function App() {
                       ? 'candidate-row active'
                       : 'candidate-row'
                   }
-                  onClick={() => setSelectedCandidateId(candidate.candidate.id)}
+                  onClick={() => handleMeetupCandidateSelect(candidate.candidate.id, 'options-panel')}
                 >
                   <span>#{candidate.rank}</span>
                   <strong>{candidate.candidate.name}</strong>
@@ -682,15 +660,21 @@ function App() {
 
         {activeTab === 'meetup' && !selectedCandidate ? (
           <div className="empty-results">
-            <p className="eyebrow">Ready when Grab is</p>
-            <h2>Build a fair meetup plan</h2>
+            <p className="eyebrow">Singapore Group Chat Tribunal</p>
+            <h2>Where Everyone Loses Equally, But With Reservations</h2>
             <p>
-              Waiting for ranked venues, fairness metrics, and departure times.
+              Add your squad, pick a vibe, and let the algorithm decide who gets mildly inconvenienced
+              for the greater good.
             </p>
             <div className="empty-steps">
-              <span>1. Confirm friends</span>
-              <span>2. Pick category</span>
-              <span>3. Compare departures</span>
+              <span>1. Add friends who type "omw" at home</span>
+              <span>2. Pick a category worthy of group chat debate</span>
+              <span>3. Compare departures and assign emotional damages</span>
+            </div>
+            <div className="map-legend" aria-label="Map legend">
+              <span><i className="origin" />Start</span>
+              <span><i className="candidate" />Venue</span>
+              <span><i className="winner" />Selected</span>
             </div>
           </div>
         ) : null}
@@ -750,15 +734,21 @@ function App() {
 
         {activeTab === 'generic' && !genericPlan ? (
           <div className="empty-results">
-            <p className="eyebrow">Route ready</p>
-            <h2>Find your latest departure</h2>
+            <p className="eyebrow">Singapore last-minute operations</p>
+            <h2>Generic departure planner for beautiful procrastinators</h2>
             <p>
-              Waiting for a route timing breakdown.
+              Enter any two places and we will calculate the exact minute you can leave before your
+              life choices catch up with you.
             </p>
             <div className="empty-steps route-preview">
               <span>{genericOriginText || 'Start'}</span>
               <span>→</span>
               <span>{genericDestinationText || 'Destination'}</span>
+            </div>
+            <div className="map-legend" aria-label="Map legend">
+              <span><i className="origin" />Start</span>
+              <span><i className="candidate" />Venue</span>
+              <span><i className="winner" />Selected</span>
             </div>
           </div>
         ) : null}
