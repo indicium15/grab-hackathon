@@ -70,10 +70,10 @@ uv run uvicorn app.main:app --reload --port 8000
 
 ## Demo Defaults
 
-- Alice: Tampines
+- Alice: Tampines MRT
 - Ben: Jurong East
 - Chloe: Orchard
-- Deepak: One North
+- David: One North
 - Category: restaurant
 - Arrival: 7:00 PM
 - Risk: Bold

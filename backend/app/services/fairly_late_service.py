@@ -24,6 +24,7 @@ RISK_COPY = {
     "career-ending": "This is a legal departure time, not a wise one.",
 }
 FALLBACK_ORIGINS = {
+    "tampines mrt": {"name": "Tampines MRT", "lat": 1.3532, "lng": 103.9452},
     "tampines": {"name": "Tampines", "lat": 1.3547, "lng": 103.9437},
     "jurong east": {"name": "Jurong East", "lat": 1.3331, "lng": 103.7423},
     "orchard": {"name": "Orchard", "lat": 1.3048, "lng": 103.8318},

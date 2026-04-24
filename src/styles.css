@@ -107,6 +107,11 @@ select:focus-visible {
   align-items: center;
 }
 
+.results-panel--center-result {
+  display: grid;
+  align-items: center;
+}
+
 .map-panel {
   grid-column: 2;
   grid-row: 1;
@@ -705,6 +710,77 @@ select:focus-visible {
   color: #3a2500;
 }
 
+.departure-timing-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 14px 0 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfdfc;
+}
+
+.departure-timing {
+  --timing-accent: var(--green-strong);
+  --timing-soft: #ecfdf4;
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-width: 0;
+  min-height: 92px;
+  border-right: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--timing-soft), #ffffff 52%);
+  padding: 13px 10px 10px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.departure-timing:last-child {
+  border-right: 0;
+}
+
+.departure-timing::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: var(--timing-accent);
+}
+
+.departure-timing strong {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.1;
+  font-weight: 950;
+}
+
+.departure-timing em {
+  color: var(--timing-accent);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.departure-timing small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  font-weight: 780;
+}
+
+.departure-timing.bold {
+  --timing-accent: var(--amber);
+  --timing-soft: #fffbeb;
+}
+
+.departure-timing.career-ending {
+  --timing-accent: var(--red);
+  --timing-soft: #fef2f2;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -733,7 +809,7 @@ select:focus-visible {
 }
 
 .suffering-callout {
-  margin-top: 16px;
+  margin-top: 0.5rem;
   border: 1px solid #fed7aa;
   background: #fff7ed;
   color: #9a3412;
@@ -847,20 +923,19 @@ select:focus-visible {
 
 .departure-table {
   margin-top: 12px;
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: minmax(96px, 1.1fr) 74px repeat(3, minmax(96px, 1fr));
-  min-width: 590px;
+  grid-template-columns: minmax(74px, 1.1fr) repeat(3, minmax(0, 1fr));
+  width: 100%;
 }
 
 .departure-table--friendship .table-head,
 .departure-table--friendship .table-row {
-  grid-template-columns: minmax(96px, 1.1fr) repeat(3, minmax(96px, 1fr));
-  min-width: 500px;
+  grid-template-columns: minmax(74px, 1.1fr) repeat(3, minmax(0, 1fr));
 }
 
 .table-head span,

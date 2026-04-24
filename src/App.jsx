@@ -9,6 +9,24 @@ const RISK_BUFFERS = {
   'career-ending': -2,
 }
 
+const DEPARTURE_TIMING_OPTIONS = [
+  {
+    key: 'responsible',
+    label: 'Responsible',
+    quip: 'Extra cushion. Annoyingly wise.',
+  },
+  {
+    key: 'bold',
+    label: 'Bold',
+    quip: 'Probably fine. Great last words.',
+  },
+  {
+    key: 'career-ending',
+    label: 'Career-ending',
+    quip: 'Technically a time. Not advice.',
+  },
+]
+
 const WEIGHTS = {
   'can-suffer': 0.75,
   normal: 1,
@@ -23,10 +41,10 @@ const LOADING_TEXTS = [
 ]
 
 const DEMO_PARTICIPANTS = [
-  { id: 'alice', name: 'Alice', originText: 'Tampines', weightLabel: 'normal' },
+  { id: 'alice', name: 'Alice', originText: 'Tampines MRT', weightLabel: 'normal' },
   { id: 'ben', name: 'Ben', originText: 'Jurong East', weightLabel: 'normal' },
   { id: 'chloe', name: 'Chloe', originText: 'Orchard', weightLabel: 'normal' },
-  { id: 'deepak', name: 'Deepak', originText: 'One North', weightLabel: 'normal' },
+  { id: 'deepak', name: 'David', originText: 'One North', weightLabel: 'normal' },
 ]
 
 const TAB_ITEMS = {
@@ -343,7 +361,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [loadingIndex, setLoadingIndex] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
-  const [genericOriginText, setGenericOriginText] = useState('Tampines')
+  const [genericOriginText, setGenericOriginText] = useState('Tampines MRT')
   const [genericDestinationText, setGenericDestinationText] = useState('Marina Bay Sands')
   const [genericArrivalTime, setGenericArrivalTime] = useState('09:00')
   const [genericProfile, setGenericProfile] = useState('driving')
@@ -868,7 +886,7 @@ function App() {
               </section>
 
               <button type="submit" className="primary-button" disabled={loading}>
-                {loading ? LOADING_TEXTS[loadingIndex] : 'Find least unfair meetup'}
+                {loading ? LOADING_TEXTS[loadingIndex] : 'Find Least Unfair Meetup'}
               </button>
             </form>
 
@@ -900,7 +918,7 @@ function App() {
                   Start location
                   <input
                     value={genericOriginText}
-                    placeholder="Tampines"
+                    placeholder="Tampines MRT"
                     onChange={(event) => setGenericOriginText(event.target.value)}
                   />
                 </label>
@@ -936,7 +954,7 @@ function App() {
               </section>
 
               <button type="submit" className="primary-button" disabled={genericLoading}>
-                {genericLoading ? LOADING_TEXTS[loadingIndex] : 'Calculate latest departure'}
+                {genericLoading ? LOADING_TEXTS[loadingIndex] : 'Calculate Latest Departure'}
               </button>
             </form>
 
@@ -984,7 +1002,7 @@ function App() {
               </section>
 
               <button type="submit" className="primary-button" disabled={conciergeLoading}>
-                {conciergeLoading ? LOADING_TEXTS[loadingIndex] : 'Summon disaster concierge'}
+                {conciergeLoading ? LOADING_TEXTS[loadingIndex] : 'Summon Disaster Concierge'}
               </button>
             </form>
 
@@ -996,13 +1014,17 @@ function App() {
       </aside>
 
       <section
-        className={`results-panel ${
+        className={[
+          'results-panel',
           (activeTab === 'meetup' && !selectedCandidate) ||
           (activeTab === 'generic' && !genericPlan) ||
           (activeTab === 'concierge' && !selectedConciergeOption)
             ? 'results-panel--empty'
-            : ''
-        }`.trim()}
+            : '',
+          activeTab === 'generic' && genericPlan ? 'results-panel--center-result' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
         aria-live="polite"
       >
 
@@ -1112,9 +1134,18 @@ function App() {
               <div className="best-card-header">
                 <div>
                   <p className="eyebrow">Departure options</p>
-                  <h2>{formatClock(genericDepartures.bold)} bold</h2>
+                  <h2>Pick your acceptable panic</h2>
                 </div>
-                <span className="rank-pill">3 timings</span>
+                <span className="rank-pill">{TRAVEL_PROFILES[genericPlan.profile] ?? genericPlan.profile}</span>
+              </div>
+              <div className="departure-timing-strip" aria-label="Departure timings">
+                {DEPARTURE_TIMING_OPTIONS.map((option) => (
+                  <span className={`departure-timing ${option.key}`} key={option.key}>
+                    <strong>{formatClock(genericDepartures[option.key])}</strong>
+                    <em>{option.label}</em>
+                    <small>{option.quip}</small>
+                  </span>
+                ))}
               </div>
               <p>
                 Leave from {genericPlan.origin.name} to reach {genericPlan.destination.name} by{' '}
@@ -1133,27 +1164,6 @@ function App() {
                   <strong>{TRAVEL_PROFILES[genericPlan.profile] ?? genericPlan.profile}</strong>
                   mode
                 </span>
-              </div>
-            </div>
-
-            <div className="departure-table">
-              <div className="table-title">
-                <h3>Departure options</h3>
-                <span>{TRAVEL_PROFILES[genericPlan.profile] ?? genericPlan.profile}</span>
-              </div>
-              <div className="table-head">
-                <span>Mode</span>
-                <span>Travel</span>
-                <span>Responsible</span>
-                <span>Bold</span>
-                <span>Career-ending</span>
-              </div>
-              <div className="table-row">
-                <span>{TRAVEL_PROFILES[genericPlan.profile] ?? genericPlan.profile}</span>
-                <span>{formatMinutes(genericPlan.durationMinutes)}</span>
-                <span>{formatClock(genericDepartures.responsible)}</span>
-                <span>{formatClock(genericDepartures.bold)}</span>
-                <span>{formatClock(genericDepartures['career-ending'])}</span>
               </div>
             </div>
           </>
