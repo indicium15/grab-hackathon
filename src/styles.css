@@ -152,7 +152,7 @@ select:focus-visible {
 
 .mode-tabs {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -198,7 +198,8 @@ select:focus-visible {
 .best-card,
 .candidate-list,
 .departure-table,
-.empty-results {
+.empty-results,
+.mission-protocol {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface);
@@ -482,6 +483,52 @@ select:focus-visible {
   color: var(--green-dark);
 }
 
+.crisis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.crisis-grid button {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 10px;
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.crisis-grid button:hover,
+.crisis-grid button.active {
+  border-color: rgba(0, 177, 79, 0.65);
+  background: var(--surface-green);
+  box-shadow: 0 8px 18px rgba(0, 177, 79, 0.11);
+}
+
+.crisis-grid strong,
+.crisis-grid span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.crisis-grid strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.crisis-grid span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 780;
+}
+
 .risk-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -653,6 +700,11 @@ select:focus-visible {
   font-weight: 950;
 }
 
+.score-pill {
+  background: #f59e0b;
+  color: #3a2500;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -695,6 +747,30 @@ select:focus-visible {
   background: #eff6ff;
   color: #1d4ed8;
   font-weight: 850;
+}
+
+.mission-card {
+  border-color: rgba(0, 177, 79, 0.32);
+}
+
+.mission-protocol {
+  display: grid;
+  gap: 0;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.mission-protocol p {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  padding: 11px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.mission-protocol p:last-child {
+  border-bottom: 0;
 }
 
 .candidate-list {
@@ -1098,7 +1174,8 @@ select:focus-visible {
 }
 
 @media (max-width: 520px) {
-  .mode-tabs {
+  .mode-tabs,
+  .crisis-grid {
     grid-template-columns: 1fr;
   }
 
