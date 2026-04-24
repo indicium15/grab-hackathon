@@ -571,13 +571,14 @@ function App() {
         )}
       </aside>
 
-      <section className="results-panel" aria-live="polite">
-        {activeTab === 'generic' && (
-          <div className="results-header">
-            <p className="eyebrow">Departure board</p>
-            <h2>Latest route plan</h2>
-          </div>
-        )}
+      <section
+        className={`results-panel ${
+          (activeTab === 'meetup' && !selectedCandidate) || (activeTab === 'generic' && !genericPlan)
+            ? 'results-panel--empty'
+            : ''
+        }`.trim()}
+        aria-live="polite"
+      >
 
         {activeTab === 'meetup' && selectedCandidate ? (
           <>
@@ -734,8 +735,8 @@ function App() {
 
         {activeTab === 'generic' && !genericPlan ? (
           <div className="empty-results">
-            <p className="eyebrow">Singapore last-minute operations</p>
-            <h2>Generic departure planner for beautiful procrastinators</h2>
+            <p className="eyebrow">The Procrastination Control Tower</p>
+            <h2>Leave Late With the Confidence of Someone Who Has Learned Nothing</h2>
             <p>
               Enter any two places and we will calculate the exact minute you can leave before your
               life choices catch up with you.
