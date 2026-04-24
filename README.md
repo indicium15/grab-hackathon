@@ -1,6 +1,8 @@
 # Friendship Damage Control
 
-Friendship Damage Control is a GrabMaps hackathon app for group meetup planning. It finds the least unfair place for a group to meet, ranks candidate venues by collective travel pain, and tells each person the latest they can leave for a shared arrival time.
+An app that settles group meetup drama, tells procrastinators the latest possible time to leave, and ranks nearby "rescue points" for minor life disasters using GrabMaps search and routing.
+
+Friendship Damage Control is a GrabMaps hackathon app for plans that have already entered the group chat danger zone. It finds the least unfair place for a group to meet, ranks candidate venues by collective travel pain, tells each person the latest they can leave for a shared arrival time, and includes a Disaster Concierge for questionable emergencies like hunger, caffeine deprivation, and needing to disappear for 20 minutes.
 
 ## Stack
 

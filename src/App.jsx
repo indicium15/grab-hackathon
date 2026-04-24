@@ -75,7 +75,7 @@ const CATEGORY_SUGGESTIONS = ['restaurant', 'cafe', 'hawker', 'bar']
 const BRAND_COPY = {
   meetup: 'Find the least unfair place to meet, then see exactly how late everyone can leave.',
   generic: 'Calculate the latest safe departure time between any two places.',
-  concierge: 'Pick a crisis, summon nearby rescue points, and let the map pretend this was all planned.',
+  concierge: 'Pick a "crisis", summon nearby rescue points, and let the map pretend this was all planned.',
 }
 
 const CRISIS_MODES = {
@@ -136,9 +136,40 @@ const CRISIS_MODES = {
   },
 }
 
-const CONCIERGE_ROUTE_LIMIT = 8
+const CONCIERGE_ROUTE_LIMIT = 10
 const CONCIERGE_RESULT_LIMIT = 5
 const FALLBACK_DRIVING_KPH = 32
+
+const CONCIERGE_LOW_SIGNAL_NAME_PATTERNS = [
+  /\bpick[-/ ]?up\b/i,
+  /\bdrop[-/ ]?off\b/i,
+  /\btaxi stand\b/i,
+  /\bcar\s*park\b/i,
+  /\bentrance\b/i,
+  /\blobby\b/i,
+  /\bballroom\b/i,
+  /\bhotel\b/i,
+  /\bresidence\b/i,
+  /\bparkroyal\b/i,
+  /\bpark\s+regis\b/i,
+  /\bpark\s+avenue\b/i,
+  /\bparksuites\b/i,
+]
+
+const CONCIERGE_KEYWORD_NAME_PATTERNS = {
+  restaurant: /\b(restaurant|bistro|diner|grill|kitchen|eatery|ramen|sushi|pizza|burger|dining)\b/i,
+  hawker: /\b(hawker|food\s*centre|market|kopitiam)\b/i,
+  food: /\b(food|restaurant|hawker|kitchen|eatery|dining|ramen|sushi|pizza|burger|bakery)\b/i,
+  coffee: /\b(coffee|cafe|bean|tea|espresso|roast|starbucks)\b/i,
+  cafe: /\b(cafe|coffee|bean|tea|espresso|roast|starbucks)\b/i,
+  bar: /\b(bar|pub|taproom|cocktail|lounge)\b/i,
+  dessert: /\b(dessert|cake|gelato|ice\s*cream|bakery|patisserie|sweet)\b/i,
+  clinic: /\b(clinic|medical|doctor|polyclinic|health|specialist)\b/i,
+  pharmacy: /\b(pharmacy|chemist|guardian|watsons)\b/i,
+  hospital: /\b(hospital|medical|health|clinic|centre|center)\b/i,
+  park: /\b(park|garden|green|reservoir|botanic)\b/i,
+  library: /\b(library)\b/i,
+}
 
 function toPayloadParticipant(participant) {
   return {
@@ -278,6 +309,19 @@ function buildConciergeCandidates(searchResponses, keywords) {
   ))
 }
 
+function getConciergeNameQuality(candidate) {
+  const name = candidate.name.toLowerCase()
+  if (CONCIERGE_LOW_SIGNAL_NAME_PATTERNS.some((pattern) => pattern.test(name))) {
+    return -1
+  }
+
+  const keywordMatches = Array.from(candidate.keywords).filter((keyword) => (
+    CONCIERGE_KEYWORD_NAME_PATTERNS[keyword]?.test(name)
+  )).length
+
+  return keywordMatches
+}
+
 function scoreConciergeCandidate(candidate, originCoords, routeData) {
   const route = routeData?.routes?.[0]
   const routeDurationSeconds = Number(route?.duration)
@@ -291,11 +335,20 @@ function scoreConciergeCandidate(candidate, originCoords, routeData) {
     Number.isFinite(routeDistanceMeters) && routeDistanceMeters > 0
       ? routeDistanceMeters
       : fallbackDistanceMeters
+  const nameQuality = getConciergeNameQuality(candidate)
   const keywordBonus = Math.min(candidate.keywords.size - 1, 2) * 6
+  const nameQualityBonus = Math.min(nameQuality, 2) * 5
+  const genericNamePenalty = nameQuality <= 0 ? 10 : 0
   const routePenalty = routeAvailable ? 0 : 16
   const score = Math.max(
     28,
-    Math.min(99, Math.round(104 - durationMinutes * 1.15 + keywordBonus - routePenalty)),
+    Math.min(
+      99,
+      Math.round(
+        104 - durationMinutes * 1.15 + keywordBonus + nameQualityBonus -
+          genericNamePenalty - routePenalty,
+      ),
+    ),
   )
 
   return {
@@ -361,7 +414,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [loadingIndex, setLoadingIndex] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
-  const [genericOriginText, setGenericOriginText] = useState('Tampines MRT')
+  const [genericOriginText, setGenericOriginText] = useState('Woodlands MRT')
   const [genericDestinationText, setGenericDestinationText] = useState('Marina Bay Sands')
   const [genericArrivalTime, setGenericArrivalTime] = useState('09:00')
   const [genericProfile, setGenericProfile] = useState('driving')
@@ -369,7 +422,7 @@ function App() {
   const [genericLoading, setGenericLoading] = useState(false)
   const [genericErrorMessage, setGenericErrorMessage] = useState('')
   const [conciergeMode, setConciergeMode] = useState('starving')
-  const [conciergeStartText, setConciergeStartText] = useState('Orchard')
+  const [conciergeStartText, setConciergeStartText] = useState('Chinatown')
   const [conciergePlan, setConciergePlan] = useState(null)
   const [selectedConciergeId, setSelectedConciergeId] = useState(null)
   const [conciergeLoading, setConciergeLoading] = useState(false)
@@ -587,6 +640,7 @@ function App() {
     setGenericLoading(true)
     setLoadingIndex(0)
     setGenericErrorMessage('')
+    setGenericPlan(null)
 
     try {
       const [originResult, destinationResult] = await Promise.all([
@@ -661,13 +715,21 @@ function App() {
       const location = `${originCoords.lat},${originCoords.lng}`
       const searchResponses = await Promise.all(
         selectedCrisis.keywords.map((keyword) =>
-          searchPlaces(keyword, { location, limit: 5 }).catch((error) => {
+          searchPlaces(keyword, { location, limit: 8 }).catch((error) => {
             console.warn('[DisasterConcierge] search failed', { keyword, error })
             return { places: [] }
           }),
         ),
       )
-      const candidates = buildConciergeCandidates(searchResponses, selectedCrisis.keywords)
+      const allCandidates = buildConciergeCandidates(searchResponses, selectedCrisis.keywords)
+      const qualityCandidates = allCandidates
+        .filter((candidate) => getConciergeNameQuality(candidate) >= 0)
+        .sort((first, second) => (
+          getConciergeNameQuality(second) - getConciergeNameQuality(first) ||
+          second.keywords.size - first.keywords.size ||
+          first.order - second.order
+        ))
+      const candidates = (qualityCandidates.length >= 3 ? qualityCandidates : allCandidates)
         .slice(0, CONCIERGE_ROUTE_LIMIT)
 
       if (!candidates.length) {
@@ -918,7 +980,7 @@ function App() {
                   Start location
                   <input
                     value={genericOriginText}
-                    placeholder="Tampines MRT"
+                    placeholder="Woodlands MRT"
                     onChange={(event) => setGenericOriginText(event.target.value)}
                   />
                 </label>
